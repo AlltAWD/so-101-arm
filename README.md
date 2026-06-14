@@ -14,7 +14,7 @@ from low-level servo control up to a learned visuomotor policy.
 Built bottom-up; each item links to its script + a short writeup.
 
 - [x] **Servo tooling** — scan bus IDs, fix duplicate IDs, read live joint positions
-- [ ] **Teach-and-repeat** — record joint trajectories to JSON, then replay
+- [x] **Teach-and-repeat** — record joint trajectories to JSON, then replay
 - [ ] **Forward kinematics** — predict end-effector pose, validated against measurement
 - [ ] **Servo characterization** — STS3215 accuracy / latency / sag-under-load
 - [ ] **LeRobot dataset** — teleoperated demonstrations for a pick task
