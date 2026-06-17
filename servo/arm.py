@@ -16,6 +16,8 @@ Once you've filled in the TODOs:
 """
 
 import scservo_sdk as scs
+import numpy as np
+import time
 
 # ---- Constants (done for you — the same values your scripts used) ----
 BAUDRATE = 1000000
@@ -110,7 +112,38 @@ class Arm:
         for name, position in targets.items():
             self.packet_handler.write2ByteTxRx(
                 self.port_handler, JOINTS[name], GOAL_POSITION, _byteswap(position))
-        
+
+    # ---- smooth motion ----
+    def goto(self, targets, ticks_per_step=10, dt=0.02):
+        """Move SMOOTHLY from the CURRENT pose to `targets`, hop by hop.
+
+        A bare write_joints() slams one goal-position at the servo, so it lurches.
+        Here we read where we are NOW and walk to the target in small increments,
+        spacing the in-between positions evenly with numpy.linspace and sleeping
+        `dt` between writes so the motion reads as one continuous glide.
+
+        Smoothness lives in the DISTANCE per hop, not the hop count: too fine and
+        the servo finishes each hop instantly then idles (jitter); too coarse and
+        it lurches. So we don't fix the step count — we derive it from how far the
+        farthest joint travels, keeping every hop ≈ `ticks_per_step`. Big moves get
+        many hops, small moves few, and both flow the same way.
+
+            arm.goto({"shoulder_pan": 2048}, ticks_per_step=10)
+
+        `targets` is a dict {name: position} — same shape read_joints/write_joints
+        use. You may pass just SOME joints; only those listed move (the farthest-
+        traveling one sets the hop count, so no joint hops more than ~ticks_per_step).
+        """
+        start = self.read_joints()
+        max_dist = max(abs(targets[name] - start[name]) for name in targets)
+        steps = max(2, int(max_dist / ticks_per_step))
+
+        paths = {name: np.linspace(start[name], target, steps)
+                for name, target in targets.items()}
+        for i in range(steps):
+            frame = {name: int(paths[name][i]) for name in targets}
+            self.write_joints(frame)
+            time.sleep(dt)
 
 
 if __name__ == "__main__":
