@@ -17,6 +17,8 @@ Once you've filled in the TODOs:
 
 import scservo_sdk as scs
 import numpy as np
+import json
+import os
 import time
 
 # ---- Constants (done for you — the same values your scripts used) ----
@@ -24,6 +26,9 @@ BAUDRATE = 1000000
 PRESENT_POSITION = 56      # register we READ for current position
 GOAL_POSITION    = 42      # register we WRITE to command a target
 TORQUE_ENABLE    = 40      # write 0 = limp, 1 = stiff
+
+TICKS_PER_REV = 4096                       # STS3215: 4096 encoder counts / revolution
+RAD_PER_TICK  = 2 * np.pi / TICKS_PER_REV  # ~0.001534 rad per tick
 
 # Stable by-id port paths — no more ttyACM roulette.
 FOLLOWER = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5AB9067297-if00"
@@ -63,6 +68,7 @@ class Arm:
         self.port = port
         self.port_handler = scs.PortHandler(port)
         self.packet_handler = scs.PacketHandler(1)
+        self.calib = None   # filled by load_calibration(); {name: {offset, sign}}
 
     # ---- port lifecycle ----
     def open(self):
@@ -113,6 +119,41 @@ class Arm:
             self.packet_handler.write2ByteTxRx(
                 self.port_handler, JOINTS[name], GOAL_POSITION, _byteswap(position))
 
+    # ---- calibration: ticks <-> radians ----
+    def load_calibration(self, path=None):
+        """Load per-joint {offset, sign} produced by servo/calibrate.py.
+
+        Stores it on self.calib so ticks_to_rad / rad_to_ticks can use it. Call
+        once after open(). Default path is data/calib.json at the repo root.
+        """
+        if path is None:
+            here = os.path.dirname(os.path.abspath(__file__))
+            path = os.path.join(os.path.dirname(here), "data", "calib.json")
+        with open(path) as f:
+            self.calib = json.load(f)["joints"]
+        return self.calib
+
+    def ticks_to_rad(self, name, ticks):
+        """One joint's raw ticks -> radians about its calibrated zero.
+            rad = sign * (ticks - offset) * RAD_PER_TICK
+        """
+        c = self.calib[name]
+        return c["sign"] * (ticks - c["offset"]) * RAD_PER_TICK
+
+    def rad_to_ticks(self, name, rad):
+        """Inverse of ticks_to_rad — radians -> the raw tick to command."""
+        c = self.calib[name]
+        return int(round(c["offset"] + c["sign"] * rad / RAD_PER_TICK))
+
+    def read_joints_rad(self):
+        """read_joints(), but each joint in radians about its calibrated zero.
+        Requires load_calibration() first. A joint that read None stays None."""
+        if self.calib is None:
+            raise RuntimeError("Call load_calibration() before read_joints_rad().")
+        raw = self.read_joints()
+        return {name: (None if raw[name] is None else self.ticks_to_rad(name, raw[name]))
+                for name in raw}
+
     # ---- smooth motion ----
     def goto(self, targets, ticks_per_step=10, dt=0.02):
         """Move SMOOTHLY from the CURRENT pose to `targets`, hop by hop.
@@ -148,9 +189,17 @@ class Arm:
 
 if __name__ == "__main__":
     # Smoke test — run `python servo/arm.py` with the follower plugged in.
+    # If data/calib.json exists, also print radians so you can verify calibration:
+    # at the reference pose every joint should read ~0.0 rad.
     arm = Arm(FOLLOWER)
     arm.open()
     try:
-        print(arm.read_joints())
+        print("ticks:", arm.read_joints())
+        try:
+            arm.load_calibration()
+            rad = arm.read_joints_rad()
+            print("rad:  ", {k: (None if v is None else round(v, 4)) for k, v in rad.items()})
+        except FileNotFoundError:
+            print("(no data/calib.json yet — run: python servo/calibrate.py)")
     finally:
         arm.close()

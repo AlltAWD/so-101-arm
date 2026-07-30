@@ -1,0 +1,31 @@
+{
+  "reference_pose": "SO-101 straight home: links aligned per standard URDF, gripper closed",
+  "ticks_per_rev": 4096,
+  "captured_at": "2026-07-30 11:26:57",
+  "joints": {
+    "shoulder_pan": {
+      "offset": 2027,
+      "sign": 1
+    },
+    "shoulder_lift": {
+      "offset": 2007,
+      "sign": 1
+    },
+    "elbow_flex": {
+      "offset": 2095,
+      "sign": 1
+    },
+    "wrist_flex": {
+      "offset": 1910,
+      "sign": 1
+    },
+    "wrist_roll": {
+      "offset": 967,
+      "sign": 1
+    },
+    "gripper": {
+      "offset": 1732,
+      "sign": 1
+    }
+  }
+}
