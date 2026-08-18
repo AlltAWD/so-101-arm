@@ -1,33 +1,21 @@
 """
-Rung 1: Read and print all 6 joint positions of the SO-101 follower arm.
+Rung 1: live-print all 6 joint positions of the SO-101 follower.
 
-Goal: when you run this, it prints something like
-    shoulder_pan   :  2048
-    shoulder_lift  :  1730
-    ...
-    gripper        :  2600
+Superseded by servo/arm.py for real work — kept as the first rung of the build
+ladder. Redraws in place at 10 Hz until Ctrl-C.
 
-Run it (with the FOLLOWER arm plugged in) using:
     conda activate lerobot
-    python ~/read_positions.py
-
-The hardware boilerplate is done for you. Fill in the 3 TODOs below —
-those are the Python parts you're practicing.
+    python servo/read_positions.py
 """
 
 import scservo_sdk as scs
 import time
 
-PORT = "/dev/ttyACM1"   # follower arm (leader is ttyACM0)
+# Pinned by USB-adapter serial: /dev/ttyACM* numbering reshuffles with plug order.
+PORT = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5AB9067297-if00"
 BAUDRATE = 1000000
-PRESENT_POSITION = 56   # register address; 2 bytes (you found this in tables.py)
+PRESENT_POSITION = 56   # register address, 2 bytes
 
-# ----------------------------------------------------------------------
-# TODO 1 — a dictionary mapping each joint NAME to its servo ID.
-# The SO-101 has 6 joints, IDs 1 through 6, in this order:
-#   shoulder_pan=1, shoulder_lift=2, elbow_flex=3,
-#   wrist_flex=4, wrist_roll=5, gripper=6
-# Build that dict. (Practicing: dictionaries)
 JOINTS = {
     "shoulder_pan": 1,
     "shoulder_lift": 2,
@@ -36,9 +24,7 @@ JOINTS = {
     "wrist_roll": 5,
     "gripper": 6
 }
-# ----------------------------------------------------------------------
 
-# Hardware setup — done for you.
 port_handler = scs.PortHandler(PORT)
 packet_handler = scs.PacketHandler(1)
 port_handler.openPort()
@@ -46,32 +32,24 @@ port_handler.setBaudRate(BAUDRATE)
 
 
 def read_position(servo_id):
-    """Read the current position (0-4095) of one servo. Done for you."""
+    """One servo's position in ticks (0-4095), or None if the read failed.
+
+    The STS3215 returns the two bytes swapped, hence the shift-and-mask.
+    """
     position, result, error = packet_handler.read2ByteTxRx(
         port_handler, servo_id, PRESENT_POSITION
     )
     if result != scs.COMM_SUCCESS:
-        return None  # couldn't read this one
+        return None
     return ((position & 0xFF) << 8) | (position >> 8)
 
 
-# ----------------------------------------------------------------------
-# TODO 2 — loop over every joint in JOINTS, read its position,
-# and print it. (Practicing: looping over a dict, calling a function)
-#
-# Hint: `for name, servo_id in JOINTS.items():`
-# Inside the loop, call read_position(servo_id) and print the result.
-#
-# TODO 3 — make the print line up nicely, e.g.
-#   print(f"{name:14}: {pos}")
-# The `:14` pads the name to 14 characters. (Practicing: f-strings)
-# ----------------------------------------------------------------------
-
-# <-- your loop goes here
 LINES = len(JOINTS)
 first = True
 try:
     while True:
+        # \033[nA moves the cursor up n lines so each pass overwrites the last
+        # instead of scrolling; \033[K clears to end of line.
         if not first:
             print(f"\033[{LINES}A", end="")
         first = False
@@ -80,5 +58,5 @@ try:
         time.sleep(0.1)
 except KeyboardInterrupt:
     print("\nStopping.")
-finally:        
+finally:
     port_handler.closePort()

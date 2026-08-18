@@ -1,17 +1,14 @@
 """
 kinematics/fk.py — forward kinematics for the SO-101.
 
-Built from three homogeneous-transform primitives (translate, rot_z, rot_rpy),
-chained down the joints in kinematics/urdf_params.py. A homogeneous transform is
-a 4x4 matrix that packs a 3x3 rotation (top-left) and a 3x1 translation (top-right
-column) together, with a [0,0,0,1] bottom row, so a whole kinematic chain is just
-a product of these matrices.
+A homogeneous transform is a 4x4 matrix packing a 3x3 rotation (top-left) and a
+3x1 translation (top-right column) with a [0,0,0,1] bottom row. It answers "where
+is this frame, and how is it oriented, as seen from its parent?" — so a whole
+kinematic chain is just a product of these matrices.
 
-We build up in pieces:
-    translate(x,y,z)  -- DONE, your template
-    rot_z(theta)      -- YOU write this now
-    rot_rpy(r,p,y)    -- next
-    pose_of(angles)   -- next, the chain itself
+Joint geometry comes from kinematics/urdf_params.py.
+
+    python kinematics/fk.py      # runs the self-checks
 """
 
 import os
@@ -24,11 +21,7 @@ from kinematics.urdf_params import JOINTS as URDF_JOINTS
 
 
 def translate(x, y, z):
-    """4x4 homogeneous transform: pure translation, no rotation.
-
-    The rotation block is the 3x3 identity (nothing spins); the translation lives
-    in the top-right column. This is your template for the shape of a 4x4.
-    """
+    """4x4 homogeneous transform: pure translation, no rotation."""
     return np.array([
         [1.0, 0.0, 0.0, x],
         [0.0, 1.0, 0.0, y],
@@ -38,19 +31,8 @@ def translate(x, y, z):
 
 
 def rot_z(theta):
-    """4x4 homogeneous transform: rotation of `theta` radians about the +Z axis.
-
-    No translation, so the top-right column is zeros. Fill the top-left 3x3 block
-    with the z-rotation:
-        x' = x*cos - y*sin
-        y' = x*sin + y*cos
-        z' = z            (z is untouched -> its row/column stay identity)
-
-    Watch which corner the minus sign goes in.
-    """
+    """4x4 homogeneous rotation of `theta` radians about +Z (yaw)."""
     c, s = np.cos(theta), np.sin(theta)
-    # TODO(you): return the 4x4 numpy array. Use the translate() shape above as a
-    # guide, but put c/s into the top-left 3x3 and leave the translation column 0.
     return np.array([
         [c, -s, 0.0, 0.0],
         [s, c, 0.0, 0.0],
@@ -60,8 +42,7 @@ def rot_z(theta):
 
 
 def rot_x(theta):
-    """4x4 homogeneous rotation about +X (roll). DONE — study the sign pattern.
-    X is untouched, so its row/column stay identity; c/s mix y and z."""
+    """4x4 homogeneous rotation about +X (roll)."""
     c, s = np.cos(theta), np.sin(theta)
     return np.array([
         [1.0, 0.0, 0.0, 0.0],
@@ -72,9 +53,11 @@ def rot_x(theta):
 
 
 def rot_y(theta):
-    """4x4 homogeneous rotation about +Y (pitch). DONE — NOTE THE SIGN FLIP.
-    Y is untouched; c/s mix z and x. Unlike rot_x/rot_z the +s is top-right and
-    the -s is bottom-left (the pattern is 'transposed'). This is a classic gotcha."""
+    """4x4 homogeneous rotation about +Y (pitch).
+
+    Note the sign pattern is transposed relative to rot_x/rot_z: +s top-right,
+    -s bottom-left.
+    """
     c, s = np.cos(theta), np.sin(theta)
     return np.array([
         [  c, 0.0,   s, 0.0],
@@ -85,41 +68,33 @@ def rot_y(theta):
 
 
 def rot_rpy(roll, pitch, yaw):
-    """4x4 homogeneous transform for a URDF roll-pitch-yaw orientation.
+    """4x4 transform for a URDF roll-pitch-yaw orientation.
 
-    URDF applies roll about X first, then pitch about Y, then yaw about Z, all
-    about the FIXED axes -> pre-multiply, so:
-        R = rot_z(yaw) @ rot_y(pitch) @ rot_x(roll)
-    (rightmost = applied first = roll). Compose the three you already have.
+    URDF applies roll about X, then pitch about Y, then yaw about Z, all about
+    FIXED axes — so pre-multiply, rightmost applied first.
     """
-    # TODO(you): return the product of the three rotation matrices, in the order
-    # above. Matrix multiply is `@` in numpy.
     return rot_z(yaw) @ rot_y(pitch) @ rot_x(roll)
 
 
-# Positioning joints only — the gripper joint just works the jaw, it doesn't
-# move where the hand is, so we stop the chain at wrist_roll.
+# Positioning joints only — the gripper joint works the jaw, it doesn't move
+# where the hand is, so the chain stops at wrist_roll.
 CHAIN = [j for j in URDF_JOINTS if j[0] != "gripper"]
 
 
 def pose_of(angles):
-    """Forward kinematics: joint angles (radians) -> 4x4 pose of the gripper
-    frame in the base frame.
+    """Joint angles (radians) -> 4x4 pose of the gripper frame in the base frame.
 
-    `angles` is a dict {joint_name: radians} — exactly what Arm.read_joints_rad()
-    returns. A joint missing from the dict is treated as 0.0.
+    `angles` is a dict {joint_name: radians}, as returned by Arm.read_joints_rad().
+    A joint missing from the dict is treated as 0.0.
 
-    Walk base -> wrist. Start T at the identity, and for each joint fold its
-    transform onto the running product:
-        joint_T = translate(*xyz) @ rot_rpy(*rpy) @ rot_z(theta)
-        T = T @ joint_T
-    Each tuple in CHAIN is (name, xyz, rpy, axis, limits); you need name, xyz, rpy.
+    Each joint contributes translate(xyz) @ rot_rpy(rpy) @ rot_z(theta): walk out
+    to where the joint sits, tilt into its mounting orientation, then apply the
+    servo's rotation. Transforms accumulate on the left, so each link's offset is
+    carried through every rotation before it.
     """
     T = np.eye(4)
     for name, xyz, rpy, axis, limits in CHAIN:
         theta = angles.get(name, 0.0)
-        # TODO(you): build joint_T from translate/rot_rpy/rot_z (order above),
-        #   then accumulate it onto T. Two lines.
         joint_T = translate(*xyz) @ rot_rpy(*rpy) @ rot_z(theta)
         T = T @ joint_T
     return T
@@ -150,14 +125,15 @@ if __name__ == "__main__":
     assert np.allclose(out, [0.0, 0.0, -1.0, 1.0]), f"rpy order wrong: got {out}, want [0,0,-1,1]"
     print("rot_rpy passes all checks ✅")
 
-    # 5) pose_of at the URDF home (all joint angles = 0). We can't know the exact
-    #    position yet (that's the ruler step), but the output MUST be a valid
-    #    homogeneous transform, and the reach must be physically plausible.
+    # 5) pose_of at the URDF home (all joint angles = 0). The exact position needs
+    #    the ruler check, but the output must be a valid homogeneous transform and
+    #    the reach must be physically plausible. The lower bound matters: a chain
+    #    that fails to accumulate returns the identity, whose reach is 0.
     T = pose_of({})                    # empty dict -> every joint 0.0
     assert np.allclose(T[3, :], [0, 0, 0, 1]), "bottom row must be [0,0,0,1]"
     R = T[:3, :3]
     assert np.allclose(R @ R.T, np.eye(3)), "rotation block must be orthonormal"
     assert np.isclose(np.linalg.det(R), 1.0), "rotation det must be +1"
     reach = np.linalg.norm(T[:3, 3])
-    assert reach < 0.5, f"reach {reach:.3f} m exceeds the arm's length — chain is wrong"
+    assert 0.1 < reach < 0.5, f"reach {reach:.3f} m is not physically plausible — chain is wrong"
     print(f"pose_of valid ✅  home position (m): {np.round(T[:3, 3], 4)}  reach {reach:.3f}")
