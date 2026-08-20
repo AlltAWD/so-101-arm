@@ -1,31 +1,47 @@
 {
-  "reference_pose": "SO-101 straight home: links aligned per standard URDF, gripper closed",
+  "reference_pose": "zero = midpoint of each joint's mechanical range, matching the new_calib URDF convention in kinematics/urdf_params.py",
   "ticks_per_rev": 4096,
-  "captured_at": "2026-07-30 11:26:57",
+  "captured_at": "2026-08-20 11:08:48",
   "joints": {
     "shoulder_pan": {
-      "offset": 2027,
-      "sign": 1
+      "offset": 2082,
+      "sign": 1,
+      "range_min": 729,
+      "range_max": 3435,
+      "span_error": 0.0811
     },
     "shoulder_lift": {
-      "offset": 2007,
-      "sign": 1
+      "offset": 2070,
+      "sign": 1,
+      "range_min": 818,
+      "range_max": 3323,
+      "span_error": 0.1008
     },
     "elbow_flex": {
-      "offset": 2095,
-      "sign": 1
+      "offset": 1973,
+      "sign": 1,
+      "range_min": 872,
+      "range_max": 3074,
+      "span_error": -0.0006
     },
     "wrist_flex": {
-      "offset": 1910,
-      "sign": 1
+      "offset": 1922,
+      "sign": 1,
+      "range_min": 758,
+      "range_max": 3086,
+      "span_error": 0.0769
     },
     "wrist_roll": {
       "offset": 967,
-      "sign": 1
+      "sign": 1,
+      "no_hard_stops": true
     },
     "gripper": {
-      "offset": 1732,
-      "sign": 1
+      "offset": 2457,
+      "sign": 1,
+      "range_min": 1731,
+      "range_max": 3183,
+      "span_error": 0.1602
     }
   }
 }
