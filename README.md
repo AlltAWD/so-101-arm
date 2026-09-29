@@ -64,6 +64,12 @@ kinematics/
   urdf_params.py    # link geometry, verbatim from the CAD-generated URDF
   fk.py             # homogeneous-transform chain: joint angles -> end pose
 data/               # calibration, recorded trajectories, validation results
+ros2/
+  so101_ros/        # ROS 2 (Jazzy) ament_python package, built from ~/ros2_ws via a symlink
+    so101_ros/      #   nodes — stdMsgPublisher.py: first 1 Hz String publisher
+    urdf/           #   two_link.urdf: minimal 2-link practice model
+notes/
+  ros2-cli.md       # what nodes, topics and messages are
 ```
 
 ## Notes / gotchas
@@ -109,4 +115,16 @@ Teach and replay a motion:
 ```bash
 python teach/teach.py             # torque off; hand-move the arm, Ctrl-C to save
 python teach/repeat.py            # torque on; replays the recording
+```
+
+### ROS 2
+
+ROS 2 Jazzy runs on the system Python — **don't `conda activate` in a ROS terminal.** The package
+lives in this repo; `~/ros2_ws` is only a build workspace that links to it:
+
+```bash
+mkdir -p ~/ros2_ws/src
+ln -s ~/so-101-arm/ros2/so101_ros ~/ros2_ws/src/so101_ros
+cd ~/ros2_ws && colcon build && source install/setup.bash
+ros2 run so101_ros talker         # 1 Hz "Hello World" on /topic
 ```

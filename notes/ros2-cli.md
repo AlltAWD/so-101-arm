@@ -1,0 +1,3 @@
+- Talker/Listener: talker sends out message and listener subscribes it
+- node/topic: `ros2 node list` only works when there are nodes (such as talker/listener) actually running
+- message: the String message being transmitted betweem publisher and subscriber
