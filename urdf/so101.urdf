@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<robot name="so101">
+
+    <link name="base_link">
+        <visual>
+            <origin xyz="0 0 0"/>
+            <geometry><box size="0.03 0.03 0.03"/></geometry>        
+    </visual>
+  </link>
+
+  <link name="shoulder_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>                  
+      <geometry><box size="0.03 0.03 0.03"/></geometry>        
+    </visual>
+  </link>
+
+  <joint name="shoulder_pan" type="revolute">
+    <parent link="base_link"/>
+    <child link="shoulder_link"/>
+    <origin xyz="0.0388353 -8.97657e-09  0.0624" rpy="3.14159  4.18253e-17 -3.14159"/>                    
+    <axis xyz="0 0 1"/>                             
+    <limit lower="-1.91986" upper="1.91986" effort="10" velocity="5"/>  
+  </joint>
+
+  <link name="upper_arm_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>                  
+      <geometry><box size="0.03 0.03 0.03"/></geometry>        
+    </visual>
+  </link>
+
+  <joint name="shoulder_lift" type="revolute">
+    <parent link="shoulder_link"/>
+    <child link="upper_arm_link"/>
+    <origin xyz="-0.0303992 -0.0182778 -0.0542" rpy="-1.5708 -1.5708 0.0"/>                    
+    <axis xyz="0 0 1"/>                             
+    <limit lower="-1.74533" upper="1.74533" effort="10" velocity="5"/>  
+  </joint>
+
+  <link name="lower_arm_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>                  
+      <geometry><box size="0.03 0.03 0.03"/></geometry>        
+    </visual>
+  </link>
+
+  <joint name="elbow_flex" type="revolute">
+    <parent link="upper_arm_link"/>
+    <child link="lower_arm_link"/>
+    <origin xyz="-0.11257 -0.028 1.73763e-16" rpy="0.0 0.0 1.5708"/>                    
+    <axis xyz="0 0 1"/>                             
+    <limit lower="-1.69" upper="1.69" effort="10" velocity="5"/>  
+  </joint>
+
+</robot>
