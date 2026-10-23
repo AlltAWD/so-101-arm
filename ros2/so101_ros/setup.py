@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'talker = so101_ros.stdMsgPublisher:main',
+            'joint_states = so101_ros.joint_state_node:main',
         ],
     },
 )
