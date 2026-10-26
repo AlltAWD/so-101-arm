@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import rclpy
 from rclpy.node import Node
+from sensor_msgs.msg import JointState
 
 # colcon copies this file into ~/ros2_ws/install/, so a __file__-relative path
 # would point there. The repo has a fixed home, so use it directly.
@@ -17,17 +18,27 @@ class JointStateNode(Node):
         self.arm.open()
         self.arm.load_calibration()
         self.arm.torque(False)
+
+        self.publisher_ = self.create_publisher(JointState, 'joint_states', 10)
         
         timer_period = 0.05 # seconds. Here we want 20Hz so time interval should be 0.05s
         self.timer = self.create_timer(timer_period, self.timer_callback)
+
+        
+
         
 
     def timer_callback(self):
-        
         joints = self.arm.read_joints_rad()
-        
-        self.get_logger().info('joints: "%s"' % joints)
-        
+        if None in joints.values():
+            return          # a servo didn't answer; skip this cycle
+        self.get_logger().debug('joints: "%s"' % joints)
+
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()  # nested field: msg.header.stamp
+        msg.name = list(joints.keys())     # list[str]
+        msg.position = list(joints.values())  # list[float], radians, same order as name
+        self.publisher_.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
