@@ -167,4 +167,68 @@
     <child link="base_link"/> 
   </joint>
 
+  <gazebo>
+  <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher"/>
+</gazebo>
+
+<gazebo>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>shoulder_lift</joint_name>
+    <topic>/so101/shoulder_lift/cmd_pos</topic>
+    <p_gain>10</p_gain>
+    <i_gain>0</i_gain>
+    <d_gain>0.1</d_gain>
+  </plugin>
+</gazebo>
+
+<gazebo>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>shoulder_pan</joint_name>
+    <topic>/so101/shoulder_pan/cmd_pos</topic>
+    <p_gain>10</p_gain>
+    <i_gain>0</i_gain>
+    <d_gain>0.1</d_gain>
+  </plugin>
+</gazebo>
+
+<gazebo>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>elbow_flex</joint_name>
+    <topic>/so101/elbow_flex/cmd_pos</topic>
+    <p_gain>10</p_gain>
+    <i_gain>0</i_gain>
+    <d_gain>0.1</d_gain>
+  </plugin>
+</gazebo>
+
+<gazebo>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>wrist_flex</joint_name>
+    <topic>/so101/wrist_flex/cmd_pos</topic>
+    <p_gain>10</p_gain>
+    <i_gain>0</i_gain>
+    <d_gain>0.1</d_gain>
+  </plugin>
+</gazebo>
+
+<gazebo>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>wrist_roll</joint_name>
+    <topic>/so101/wrist_roll/cmd_pos</topic>
+    <p_gain>10</p_gain>
+    <i_gain>0</i_gain>
+    <d_gain>0.1</d_gain>
+  </plugin>
+</gazebo>
+
+<gazebo>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>gripper</joint_name>
+    <topic>/so101/gripper/cmd_pos</topic>
+    <p_gain>10</p_gain>
+    <i_gain>0</i_gain>
+    <d_gain>0.1</d_gain>
+  </plugin>
+</gazebo>
+
 </robot>
